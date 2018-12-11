@@ -39,7 +39,6 @@ function handler ({ bucket, key, file, stdout }) {
 
   let sinkStream
   if (stdout) {
-    console.info(`Fetching s3://${bucket}/${key} to - (stdout) ...`)
     sinkStream = process.stdout
   } else {
     if (!file) {
@@ -64,7 +63,9 @@ function handler ({ bucket, key, file, stdout }) {
   })
 
   s3Stream.on('end', () => {
-    console.info(`S3 fetch complete.`)
+    if (!stdout) {
+      console.info(`S3 fetch complete.`)
+    }
   })
 
   s3Stream.pipe(sinkStream)
