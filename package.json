@@ -1,0 +1,19 @@
+{
+  "name": "@buzuli/s3",
+  "version": "1.0.0",
+  "description": "S3 CLI client",
+  "bin": {
+    "s3": "bin/s3.js"
+  },
+  "keywords": [
+    "s3",
+    "aws",
+    "cli"
+  ],
+  "author": "Joel Edwards <joeledwards@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.373.0",
+    "yargs": "^12.0.5"
+  }
+}
