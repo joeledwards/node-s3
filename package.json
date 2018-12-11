@@ -5,6 +5,10 @@
   "bin": {
     "s3": "bin/s3.js"
   },
+  "scripts": {
+    "lint": "standard",
+    "lint:fix": "standard --fix"
+  },
   "keywords": [
     "s3",
     "aws",
@@ -15,5 +19,8 @@
   "dependencies": {
     "aws-sdk": "^2.373.0",
     "yargs": "^12.0.5"
+  },
+  "devDependencies": {
+    "standard": "^12.0.1"
   }
 }
