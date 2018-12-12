@@ -1,6 +1,6 @@
 {
   "name": "@buzuli/s3",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "S3 CLI client",
   "bin": {
     "s3": "bin/s3.js"
