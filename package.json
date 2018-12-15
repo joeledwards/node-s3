@@ -17,7 +17,9 @@
   "author": "Joel Edwards <joeledwards@gmail.com>",
   "license": "ISC",
   "dependencies": {
+    "@buzuli/color": "^2.0.0",
     "aws-sdk": "^2.373.0",
+    "moment": "^2.23.0",
     "ramda": "^0.26.1",
     "yargs": "^12.0.5"
   },
