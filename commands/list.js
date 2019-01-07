@@ -10,7 +10,7 @@ function builder (yargs) {
     .positional('bucket', {
       type: 'string',
       desc: 'S3 bucket from which to fetch the object',
-      alisa: 'b'
+      alias: 'b'
     })
     .positional('prefix', {
       type: 'string',
@@ -40,33 +40,17 @@ function builder (yargs) {
       alias: 'l'
     })
     .option('unlimited', {
-      type: 'number',
+      type: 'boolean',
       desc: 'list all keys everything',
-      alisa: 'u'
+      alias: 'u'
     })
 }
 
 function handler (options) {
-  const {
-    bucket,
-    prefix,
-    delimiter,
-    startAfter,
-    format,
-    limit,
-    unlimited
-  } = options
-
-  if (!bucket) {
+  if (!options.bucket) {
     formatBuckets(listBuckets())
   } else {
-    formatKeys(listKeys({
-      bucket,
-      prefix,
-      delimiter,
-      startAfter,
-      limit: unlimited ? -1 : limit
-    }), { format })
+    formatKeys(listKeys(options), options)
   }
 }
 
@@ -92,7 +76,7 @@ function listBuckets () {
       events.emit('error', error)
     } else {
       const {
-        Buckets: bucketNames,
+        Buckets: bucketNames
       } = result
 
       try {
@@ -104,6 +88,7 @@ function listBuckets () {
           })
         ))
         buckets.forEach(bucket => events.emit('bucket', bucket))
+        events.emit('end', { count: buckets.length })
       } catch (error) {
         events.emit('error', error)
       }
@@ -114,7 +99,7 @@ function listBuckets () {
 }
 
 // List S3 keys
-function listKeys ({ bucket, prefix, delimiter, startAfter, limit }) {
+function listKeys ({ bucket, prefix, delimiter, startAfter, limit, unlimited }) {
   const aws = require('aws-sdk')
   const moment = require('moment')
   const EventEmitter = require('events')
@@ -122,8 +107,8 @@ function listKeys ({ bucket, prefix, delimiter, startAfter, limit }) {
   const s3 = new aws.S3()
   const events = new EventEmitter()
 
-  const total = 0
-  const count = 0
+  let keyCount = 0
+  let prefixCount = 0
 
   const listMore = token => {
     const options = {
@@ -131,7 +116,7 @@ function listKeys ({ bucket, prefix, delimiter, startAfter, limit }) {
       Prefix: prefix,
       Delimiter: delimiter,
       StartAfter: startAfter,
-      MaxKeys: Math.min(1000, limit - total)
+      MaxKeys: Math.min(1000, unlimited ? 1000 : (limit - keyCount))
     }
 
     if (token) {
@@ -152,6 +137,7 @@ function listKeys ({ bucket, prefix, delimiter, startAfter, limit }) {
         prefixes.forEach(({
           Prefix: prefix
         }) => {
+          prefixCount++
           const url = `s3://${bucket}/${prefix}`
           events.emit('prefix', {
             bucket,
@@ -161,6 +147,8 @@ function listKeys ({ bucket, prefix, delimiter, startAfter, limit }) {
           })
         })
 
+        const maxSize = keys.reduce((acc, { Size: size }) => Math.max(size, acc), 0)
+
         keys.forEach(({
           Key: key,
           LastModified: modified,
@@ -168,19 +156,27 @@ function listKeys ({ bucket, prefix, delimiter, startAfter, limit }) {
           Size: size,
           StorageClass: storage
         }) => {
+          keyCount++
           const url = `s3://${bucket}/${key}`
           events.emit('key', {
             bucket,
             delimiter,
             key,
             modified: moment(modified).utc(),
+            maxSize,
             size,
             url
           })
         })
 
-        if (isTruncated && limit > total) {
+        if (isTruncated && (unlimited || limit > keyCount)) {
           listMore(token)
+        } else {
+          events.emit('end', {
+            prefixCount,
+            keyCount,
+            more: isTruncated
+          })
         }
       }
     })
@@ -207,7 +203,7 @@ function formatBuckets (buckets) {
 
   buckets.on('bucket', bucket => console.info(formatBucket(bucket)))
 
-  buckets.once('end', ({ more, count, total }) => {
+  buckets.once('end', ({ count }) => {
     console.info(`Listed ${c.orange(count)} buckets.`)
   })
 
@@ -225,16 +221,17 @@ function formatKeys (keys, { format }) {
 
   keys.on('prefix', ({ bucket, delimiter, prefix, url }) => {
     switch (format) {
-      case 'bucket-key': return console.info(`${bucket} ${prefix}`)
-      case 'key': return console.info(prefix)
-      case 'url': return console.info(url)
+      case 'bucket-key': return console.info(`  ${bucket} ${prefix}`)
+      case 'key': return console.info(`  ${prefix}`)
+      case 'url': return console.info(`  ${url}`)
     }
   })
 
-  keys.on('key', ({ bucket, delimiter, key, modified, size, url }) => {
+  keys.on('key', ({ bucket, delimiter, key, maxSize, modified, size, url }) => {
+    const pad = `${maxSize}`.length
     const dateStr = modified.format('YYYY-MM-DD')
     const timeStr = c.grey(modified.format('HH:mm:ss'))
-    const sizeStr = c.orange(padString(20, `${size}`))
+    const sizeStr = c.orange(padString(pad, `${size}`))
     const decorate = text => `  [${dateStr} ${timeStr} | ${sizeStr}] ${text}`
     switch (format) {
       case 'bucket-key': return console.info(decorate(`${c.blue(bucket)} ${c.yellow(key)}`))
@@ -243,10 +240,13 @@ function formatKeys (keys, { format }) {
     }
   })
 
-  keys.once('end', ({ count, more, total }) => {
-    const all = more ? '' : ' all'
+  keys.once('end', ({ prefixCount, keyCount, more }) => {
+    const all = more ? '' : 'all '
     const partial = more ? ' (partial listing)' : ''
-    console.info(`Listed ${all}${c.orange(count)} keys${partial}.`)
+    if (prefixCount > 0) {
+      console.info(`Listed ${c.orange(prefixCount)} common prefixes.`)
+    }
+    console.info(`Listed ${all}${c.orange(keyCount)} matching keys${partial}.`)
   })
 
   keys.once('error', error => {

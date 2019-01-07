@@ -45,10 +45,9 @@ async function collectStream (stream) {
 }
 
 async function handler ({ bucket, key, file, stdin, header }) {
-  const r = require('ramda') 
+  const r = require('ramda')
   const fs = require('fs')
   const aws = require('aws-sdk')
-  const path = require('path')
 
   const s3 = new aws.S3()
 
@@ -109,9 +108,9 @@ async function handler ({ bucket, key, file, stdin, header }) {
     Key: key
   }
 
-  headers.forEach(([name, value]) => options[name] = value)
+  headers.forEach(([name, value]) => { options[name] = value })
 
-  const s3Stream = s3.putObject(options, (error, result) => {
+  s3.putObject(options, (error, result) => {
     if (error) {
       console.error(`Error putting S3 object : ${error}`)
       process.exit(1)
