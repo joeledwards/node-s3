@@ -19,6 +19,7 @@
   "license": "ISC",
   "dependencies": {
     "@buzuli/color": "^2.1.0",
+    "@buzuli/json": "^1.3.0",
     "@buzuli/throttle": "^2.0.2",
     "aws-sdk": "^2.373.0",
     "durations": "^3.4.1",

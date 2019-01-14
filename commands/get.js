@@ -9,12 +9,12 @@ function builder (yargs) {
   yargs
     .positional('bucket', {
       type: 'string',
-      desc: 'S3 bucket from which to fetch the object',
+      desc: 'S3 bucket where the object resides',
       alisa: 'b'
     })
     .positional('key', {
       type: 'string',
-      desc: 'S3 key identifying the object within the bucket',
+      desc: 'S3 key identifying the object which should be fetched',
       alias: 'k'
     })
     .positional('file', {
@@ -40,14 +40,22 @@ function handler ({ bucket, key, file, stdout }) {
   let sinkStream
   if (stdout) {
     sinkStream = process.stdout
+    sinkStream.on('error', error => {
+      if (error.code !== 'EPIPE') {
+        console.error(`Error writing to stdout : ${error}`)
+        process.exit(1)
+      }
+    })
   } else {
     if (!file) {
       file = path.basename(key)
     }
     sinkStream = fs.createWriteStream(file)
     sinkStream.on('error', error => {
-      console.error(`Error writing file : ${error}`)
-      process.exit(1)
+      if (error.code !== 'EPIPE') {
+        console.error(`Error writing file : ${error}`)
+        process.exit(1)
+      }
     })
     console.info(`Fetching s3://${bucket}/${key} to ${file} ...`)
   }
