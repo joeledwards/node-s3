@@ -6,6 +6,13 @@
   "bin": {
     "s3": "bin/s3.js"
   },
+  "files": [
+    "package.json",
+    "README.md",
+    "bin/*.js",
+    "commands/*.js",
+    "lib/**.js"
+  ],
   "scripts": {
     "lint": "standard",
     "lint:fix": "standard --fix"
