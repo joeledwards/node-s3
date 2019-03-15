@@ -47,6 +47,7 @@ async function handler (args) {
     verbose
   } = args
 
+  let lastKey
   let scanned = 0
   let count = 0
   let size = 0
@@ -57,7 +58,8 @@ async function handler (args) {
     const sizeStr = c.yellow(prettyBytes(size))
     const bytesStr = c.orange(size.toLocaleString())
     const timeStr = c.blue(watch)
-    console.info(`${countStr} of ${scannedStr} keys => ${sizeStr} (${bytesStr} bytes) in ${timeStr}`)
+    const keyStr = c.yellow(lastKey)
+    console.info(`${countStr} of ${scannedStr} keys => ${sizeStr} (${bytesStr} bytes) in ${timeStr} [${keyStr}]`)
   }
   const reporter = () => throttle({
     minDelay: reportFrequency,
@@ -88,6 +90,7 @@ async function handler (args) {
     const filtered = regex && !key.match(regex)
 
     if (!filtered) {
+      lastKey = key
       count++
       size += bytes
     }

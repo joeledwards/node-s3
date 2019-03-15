@@ -1,6 +1,6 @@
 module.exports = {
   command: 'put <bucket> <key> [file]',
-  desc: 'fetch an s3 resource',
+  desc: 'write a resource to s3',
   builder,
   handler
 }
@@ -68,10 +68,7 @@ async function handler ({ bucket, key, file, stdin, header }) {
 
     if (value.length < 1) return
 
-    const pair = {}
-    pair[name] = value
-
-    return pair
+    return [name, value]
   }
 
   if (!stdin && !file) {
