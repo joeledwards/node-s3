@@ -1,5 +1,5 @@
 module.exports = {
-  command: 'get <bucket> <key> [file]',
+  command: 'get <bucket> <key>',
   desc: 'fetch an s3 resource',
   builder,
   handler
@@ -17,9 +17,9 @@ function builder (yargs) {
       desc: 'S3 key identifying the object which should be fetched',
       alias: 'k'
     })
-    .positional('file', {
+    .option('file', {
       type: 'string',
-      desc: 'basename of the key by default; use "-" to write to stdout',
+      desc: 'path of the file to which output should be written (basename of the key is used as the filename by default)',
       alias: 'f'
     })
     .option('stdout', {
