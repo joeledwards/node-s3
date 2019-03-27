@@ -30,8 +30,14 @@ function builder (yargs) {
     })
     .option('header', {
       type: 'array',
-      desc: "headers to add to the S3 object (e.g. -h 'ContentEncoding:gzip')",
+      desc: 'headers to add to the S3 object (e.g. -h "ContentEncoding:gzip")',
       alias: 'h'
+    })
+    .option('publish', {
+      type: 'boolean',
+      desc: 'make the resource public (read-only)',
+      default: false,
+      alias: 'P'
     })
 }
 
@@ -44,7 +50,7 @@ async function collectStream (stream) {
   })
 }
 
-async function handler ({ bucket, key, file, stdin, header }) {
+async function handler ({ bucket, key, file, stdin, header, publish }) {
   const r = require('ramda')
   const fs = require('fs')
   const aws = require('aws-sdk')
@@ -106,6 +112,10 @@ async function handler ({ bucket, key, file, stdin, header }) {
   }
 
   headers.forEach(([name, value]) => { options[name] = value })
+
+  if (publish) {
+    options.ACL = 'public-read'
+  }
 
   s3.putObject(options, (error, result) => {
     if (error) {
