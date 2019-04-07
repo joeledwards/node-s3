@@ -236,7 +236,7 @@ function formatKeys (keys, { format }) {
     switch (format) {
       case 'bucket-key': return console.info(decorate(`${c.blue(bucket)} ${c.yellow(key)}`))
       case 'key': return console.info(decorate(c.yellow(key)))
-      case 'url': return console.info(decorate(c.green(url)))
+      case 'url': return console.info(decorate(`${c.green('s3')}://${c.blue(bucket)}/${c.yellow(key)}`))
     }
   })
 
