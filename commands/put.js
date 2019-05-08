@@ -9,18 +9,15 @@ function builder (yargs) {
   yargs
     .positional('bucket', {
       type: 'string',
-      desc: 'S3 bucket from which to fetch the object',
-      alisa: 'b'
+      desc: 'S3 bucket from which to fetch the object'
     })
     .positional('key', {
       type: 'string',
-      desc: 'S3 key identifying the object within the bucket',
-      alias: 'k'
+      desc: 'S3 key identifying the object within the bucket'
     })
     .positional('file', {
       type: 'string',
-      desc: 'basename of the key by default; use "-" to write to stdout',
-      alias: 'f'
+      desc: 'basename of the key by default; use "-" to write to stdout'
     })
     .option('stdin', {
       type: 'boolean',
@@ -39,21 +36,35 @@ function builder (yargs) {
       default: false,
       alias: 'P'
     })
+    .option('part-size', {
+      type: 'number',
+      desc: 'the maximum size (in MiB) for each part (max buffered in memory per part)',
+      default: 20,
+      alias: 'p'
+    })
+    .option('queue-size', {
+      type: 'number',
+      desc: 'maximum number of outstanding part buffers (buffered sequentially, uploaded in parallel; for fast sources)',
+      default: 1,
+      alias: 'q'
+    })
 }
 
-async function collectStream (stream) {
-  return new Promise((resolve, reject) => {
-    const buffer = []
-    stream.on('data', data => buffer.push(data))
-    stream.once('end', () => resolve(Buffer.concat(buffer)))
-    stream.once('error', reject)
-  })
-}
-
-async function handler ({ bucket, key, file, stdin, header, publish }) {
+async function handler (args) {
   const r = require('ramda')
   const fs = require('fs')
   const aws = require('aws-sdk')
+
+  const {
+    bucket,
+    key,
+    file,
+    stdin,
+    header,
+    publish,
+    partSize,
+    queueSize
+  } = args
 
   const s3 = new aws.S3()
 
@@ -96,28 +107,24 @@ async function handler ({ bucket, key, file, stdin, header, publish }) {
     console.info(`Putting ${file} to s3://${bucket}/${key} ...`)
   }
 
-  let body
-  try {
-    // TODO: if file, determine size first
-    // TODO: if stdin, send in 100MB chunks
-    body = await collectStream(sourceStream)
-  } catch (error) {
-    console.error('Error collecting data:', error)
-  }
-
-  const options = {
-    Body: body,
+  const params = {
+    Body: sourceStream,
     Bucket: bucket,
     Key: key
   }
 
-  headers.forEach(([name, value]) => { options[name] = value })
+  headers.forEach(([name, value]) => { params[name] = value })
 
   if (publish) {
-    options.ACL = 'public-read'
+    params.ACL = 'public-read'
   }
 
-  s3.putObject(options, (error, result) => {
+  const options = {
+    partSize: partSize * 1024 * 1024,
+    queueSize
+  }
+
+  s3.upload(params, options, (error, result) => {
     if (error) {
       console.error(`Error putting S3 object : ${error}`)
       process.exit(1)
