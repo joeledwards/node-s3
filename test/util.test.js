@@ -44,13 +44,14 @@ tap.test('util.parseUri()', async assert => {
 
   assert.same(parseUri('/bkt'), { bucket: 'bkt' })
   assert.same(parseUri('/bkt/'), { bucket: 'bkt' })
+  assert.same(parseUri('/bkt/k/p'), { bucket: 'bkt', key: 'k/p' })
+  assert.same(parseUri('/bkt/k/p/'), { bucket: 'bkt', key: 'k/p/' })
   assert.same(parseUri('bkt/'), { bucket: 'bkt' })
   assert.same(parseUri('bkt/key'), { bucket: 'bkt', key: 'key' })
   assert.same(parseUri('bkt/key/'), { bucket: 'bkt', key: 'key/' })
   assert.same(parseUri('bkt/k/p'), { bucket: 'bkt', key: 'k/p' })
   assert.same(parseUri('bkt/k/p/'), { bucket: 'bkt', key: 'k/p/' })
   assert.same(parseUri('bkt/k/p//'), { bucket: 'bkt', key: 'k/p/' })
-})
 
 tap.test('util.trim()', async assert => {
   assert.equal(trim()('  foo'), 'foo')

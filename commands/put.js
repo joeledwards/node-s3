@@ -15,14 +15,15 @@ function builder (yargs) {
       type: 'string',
       desc: 'S3 key identifying the object within the bucket'
     })
-    .positional('file', {
+    .option('file', {
       type: 'string',
-      desc: 'basename of the key by default; use "-" to write to stdout'
+      desc: 'input from the named file',
+      alias: 'f'
     })
     .option('stdin', {
       type: 'boolean',
-      desc: 'stream content to stdin',
-      default: false,
+      desc: 'stream content from stdin',
+      conflicts: ['file'],
       alias: 'S'
     })
     .option('header', {
@@ -105,6 +106,10 @@ async function handler (args) {
   } else {
     sourceStream = fs.createReadStream(file)
     console.info(`Putting ${file} to s3://${bucket}/${key} ...`)
+
+    if (publish) {
+      console.info(`Publicly available at https://${bucket}.s3.amazonaws.com/${key}`)
+    }
   }
 
   const params = {
