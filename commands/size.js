@@ -7,6 +7,14 @@ module.exports = {
 
 function builder (yargs) {
   yargs
+    .positional('bucket', {
+      type: 'string',
+      desc: 'the bucket which should be scanned'
+    })
+    .positional('prefix', {
+      type: 'string',
+      desc: 'a prefix to which scanning should be limited'
+    })
     .option('quiet', {
       type: 'boolean',
       desc: 'only print output on completion or error',
