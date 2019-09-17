@@ -33,7 +33,7 @@ function handler ({ bucket, key }) {
     if (error) {
       console.error(`Error deleting S3 object : ${error}`)
     } else {
-      console.info(`Resource deleted.`)
+      console.info('Resource deleted.')
     }
   })
 }

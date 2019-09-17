@@ -26,18 +26,18 @@
   "author": "Joel Edwards <joeledwards@gmail.com>",
   "license": "ISC",
   "dependencies": {
-    "@buzuli/color": "^2.2.0",
-    "@buzuli/json": "^1.3.0",
+    "@buzuli/color": "^2.2.2",
+    "@buzuli/json": "^2.0.2",
     "@buzuli/throttle": "^2.0.2",
-    "aws-sdk": "^2.500.0",
+    "aws-sdk": "^2.529.0",
     "durations": "^3.4.1",
     "moment": "^2.24.0",
-    "pretty-bytes": "^5.2.0",
+    "pretty-bytes": "^5.3.0",
     "ramda": "^0.26.1",
-    "yargs": "^13.3.0"
+    "yargs": "^14.0.0"
   },
   "devDependencies": {
-    "standard": "^13.1.0",
-    "tap": "^14.4.3"
+    "standard": "^14.3.0",
+    "tap": "^14.6.4"
   }
 }

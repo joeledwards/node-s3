@@ -72,7 +72,7 @@ function handler ({ bucket, key, file, stdout }) {
 
   s3Stream.on('end', () => {
     if (!stdout) {
-      console.info(`S3 fetch complete.`)
+      console.info('S3 fetch complete.')
     }
   })
 
