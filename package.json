@@ -29,6 +29,7 @@
     "@buzuli/color": "^2.2.2",
     "@buzuli/json": "^2.0.2",
     "@buzuli/throttle": "^2.0.2",
+    "@buzuli/url": "^1.0.0",
     "aws-sdk": "^2.529.0",
     "durations": "^3.4.1",
     "moment": "^2.24.0",

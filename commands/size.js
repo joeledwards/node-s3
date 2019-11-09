@@ -1,5 +1,5 @@
 module.exports = {
-  command: 'size <bucket> [prefix]',
+  command: 'size <bucket-or-uri> [prefix]',
   desc: 'count the bytes and objects at an S3 location',
   builder,
   handler
@@ -7,9 +7,9 @@ module.exports = {
 
 function builder (yargs) {
   yargs
-    .positional('bucket', {
+    .positional('bucket-or-uri', {
       type: 'string',
-      desc: 'the bucket which should be scanned'
+      desc: 'the bucket or URI which should be scanned'
     })
     .positional('prefix', {
       type: 'string',
@@ -45,15 +45,18 @@ async function handler (args) {
   const throttle = require('@buzuli/throttle')
   const prettyBytes = require('pretty-bytes')
   const { stopwatch } = require('durations')
+  const { resolveResourceInfo } = require('../lib/util')
 
   const {
-    bucket,
-    prefix,
+    bucketOrUri,
+    prefix: scanPrefix,
     keyRegex,
     quiet,
     reportFrequency,
     verbose
   } = args
+
+  const { bucket, key: prefix } = resolveResourceInfo(bucketOrUri, scanPrefix)
 
   let lastKey
   let scanned = 0

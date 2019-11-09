@@ -1,5 +1,5 @@
 module.exports = {
-  command: 'head <bucket> <key>',
+  command: 'head <bucket-or-uri> [key]',
   desc: 'fetch metadata for an S3 object',
   builder,
   handler
@@ -7,24 +7,30 @@ module.exports = {
 
 function builder (yargs) {
   yargs
-    .positional('bucket', {
+    .positional('bucket-or-uri', {
       type: 'string',
-      desc: 'S3 bucket where the object resides',
+      desc: 'the bucket containing the key or the full uri of the object to inspect',
       alisa: 'b'
     })
     .positional('key', {
       type: 'string',
-      desc: 'S3 key identifying the object whose metadata should be fetched',
+      desc: 'the key identifying the object whose metadata should be fetched',
       alias: 'k'
     })
 }
 
-function handler ({ bucket, key }) {
+function handler ({
+  bucketOrUri,
+  key: headKey
+}) {
   const c = require('@buzuli/color')
   const aws = require('aws-sdk')
   const buzJson = require('@buzuli/json')
+  const { resolveResourceInfo } = require('../lib/util')
 
   const s3 = new aws.S3()
+
+  const { bucket, key } = resolveResourceInfo(bucketOrUri, headKey)
 
   s3.headObject({
     Bucket: bucket,

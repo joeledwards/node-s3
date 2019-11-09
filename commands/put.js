@@ -1,5 +1,5 @@
 module.exports = {
-  command: 'put <bucket> <key> [file]',
+  command: 'put <bucket-or-uri> [key]',
   desc: 'write a resource to s3',
   builder,
   handler
@@ -7,13 +7,13 @@ module.exports = {
 
 function builder (yargs) {
   yargs
-    .positional('bucket', {
+    .positional('bucket-or-uri', {
       type: 'string',
-      desc: 'S3 bucket from which to fetch the object'
+      desc: 'the bucket containing the key or the full uri of the object to write'
     })
     .positional('key', {
       type: 'string',
-      desc: 'S3 key identifying the object within the bucket'
+      desc: 'the key identifying the destination of the object within the bucket'
     })
     .option('file', {
       type: 'string',
@@ -55,10 +55,11 @@ async function handler (args) {
   const r = require('ramda')
   const fs = require('fs')
   const aws = require('aws-sdk')
+  const { resolveResourceInfo } = require('../lib/util')
 
   const {
-    bucket,
-    key,
+    bucketOrUri,
+    key: putKey,
     file,
     stdin,
     header,
@@ -68,6 +69,8 @@ async function handler (args) {
   } = args
 
   const s3 = new aws.S3()
+
+  const { bucket, key } = resolveResourceInfo(bucketOrUri, putKey)
 
   const splitHeader = header => {
     if (!header) return

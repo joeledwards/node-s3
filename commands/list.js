@@ -1,5 +1,5 @@
 module.exports = {
-  command: 'list [bucket] [prefix]',
+  command: 'list [bucket-or-uri] [prefix]',
   desc: 'list resources in an S3 bucket',
   builder,
   handler
@@ -7,9 +7,9 @@ module.exports = {
 
 function builder (yargs) {
   yargs
-    .positional('bucket', {
+    .positional('bucket-or-uri', {
       type: 'string',
-      desc: 'S3 bucket from which to fetch the object',
+      desc: 'Bucket or URI to scan',
       alias: 'b'
     })
     .positional('prefix', {
@@ -47,7 +47,7 @@ function builder (yargs) {
 }
 
 function handler (options) {
-  if (!options.bucket) {
+  if (!options.bucketOrUri) {
     formatBuckets(listBuckets())
   } else {
     formatKeys(listKeys(options), options)
@@ -99,10 +99,20 @@ function listBuckets () {
 }
 
 // List S3 keys
-function listKeys ({ bucket, prefix, delimiter, startAfter, limit, unlimited }) {
+function listKeys ({
+  bucketOrUri,
+  prefix: listPrefix,
+  delimiter,
+  startAfter,
+  limit,
+  unlimited
+}) {
   const aws = require('aws-sdk')
   const moment = require('moment')
   const EventEmitter = require('events')
+  const { resolveResourceInfo } = require('../lib/util')
+
+  const { bucket, key: prefix } = resolveResourceInfo(bucketOrUri, listPrefix)
 
   const s3 = new aws.S3()
   const events = new EventEmitter()

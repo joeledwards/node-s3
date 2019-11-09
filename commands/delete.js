@@ -1,5 +1,5 @@
 module.exports = {
-  command: 'delete <bucket> <key>',
+  command: 'delete <bucket-or-uri> [key]',
   desc: 'delete an s3 resource',
   builder,
   handler
@@ -7,22 +7,28 @@ module.exports = {
 
 function builder (yargs) {
   yargs
-    .positional('bucket', {
+    .positional('bucket-or-uri', {
       type: 'string',
-      desc: 'S3 bucket from which to fetch the object',
+      desc: 'bucket containing the key or the full uri of the object to delete',
       alisa: 'b'
     })
     .positional('key', {
       type: 'string',
-      desc: 'S3 key identifying the object within the bucket',
+      desc: 'key identifying the object within the bucket',
       alias: 'k'
     })
 }
 
-function handler ({ bucket, key }) {
+function handler ({
+  bucketOrUri,
+  key: deleteKey
+}) {
   const aws = require('aws-sdk')
+  const { resolveResourceInfo } = require('../lib/util')
 
   const s3 = new aws.S3()
+
+  const { bucket, key } = resolveResourceInfo(bucketOrUri, deleteKey)
 
   console.info(`Deleting s3://${bucket}/${key} ...`)
 

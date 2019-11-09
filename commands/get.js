@@ -1,5 +1,5 @@
 module.exports = {
-  command: 'get <bucket> <key>',
+  command: 'get <bucket-or-uri> [key]',
   desc: 'fetch an s3 resource',
   builder,
   handler
@@ -7,14 +7,14 @@ module.exports = {
 
 function builder (yargs) {
   yargs
-    .positional('bucket', {
+    .positional('bucket-or-uri', {
       type: 'string',
-      desc: 'S3 bucket where the object resides',
+      desc: 'bucket containing the key or the full uri of the object to fetch',
       alisa: 'b'
     })
     .positional('key', {
       type: 'string',
-      desc: 'S3 key identifying the object which should be fetched',
+      desc: 'key identifying the object to fetch',
       alias: 'k'
     })
     .option('file', {
@@ -30,12 +30,20 @@ function builder (yargs) {
     })
 }
 
-function handler ({ bucket, key, file, stdout }) {
+function handler ({
+  bucketOrUri,
+  key: getKey,
+  file,
+  stdout
+}) {
   const fs = require('fs')
   const aws = require('aws-sdk')
   const path = require('path')
+  const { resolveResourceInfo } = require('../lib/util')
 
   const s3 = new aws.S3()
+
+  const { bucket, key } = resolveResourceInfo(bucketOrUri, getKey)
 
   let sinkStream
   if (stdout) {

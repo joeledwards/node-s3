@@ -4,9 +4,10 @@ const aws = require('aws-sdk')
 const moment = require('moment')
 const throttle = require('@buzuli/throttle')
 const durations = require('durations')
+const { resolveResourceInfo } = require('../lib/util')
 
 module.exports = {
-  command: 'list-multipart <bucket> [prefix]',
+  command: 'list-multipart <bucket-or-uri> [prefix]',
   desc: 'list incomplete multi-part uploads',
   builder,
   handler
@@ -14,9 +15,9 @@ module.exports = {
 
 function builder (yargs) {
   yargs
-    .positional('bucket', {
+    .positional('bucket-or-uri', {
       type: 'string',
-      desc: 'the bucket to scan for multi-part uploads'
+      desc: 'the bucket containing the prefix or the uri to scan for multi-part uploads'
     })
     .positional('prefix', {
       type: 'string',
@@ -52,14 +53,16 @@ function builder (yargs) {
 
 async function handler (args) {
   const {
-    bucket,
-    prefix,
+    bucketOrUri,
+    prefix: scanPrefix,
     delimiter,
     limit,
     pageSize,
     file,
     verbose
   } = args
+
+  const { bucket, key: prefix } = resolveResourceInfo(bucketOrUri, scanPrefix)
 
   let requestCount = 0
   let count = 0
