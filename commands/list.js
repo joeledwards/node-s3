@@ -219,7 +219,7 @@ function formatBuckets (buckets) {
 
   buckets.once('error', error => {
     console.error(error)
-    console.error(c.red('Error listing buckets. Details above ☝🏼'))
+    console.error(c.red(`Error listing buckets. Details above ${c.yellow('^')}`))
     process.exit(1)
   })
 }
@@ -261,7 +261,7 @@ function formatKeys (keys, { format }) {
 
   keys.once('error', error => {
     console.error(error)
-    console.error(c.red('Error listing keys. Details above ☝🏼'))
+    console.error(c.red(`Error listing keys. Details above ${c.yellow('^')}`))
     process.exit(1)
   })
 }
