@@ -17,11 +17,17 @@ function builder (yargs) {
       desc: 'the key identifying the object whose metadata should be fetched',
       alias: 'k'
     })
+    .option('acl', {
+      type: 'boolean',
+      desc: 'also fetch the ACL for this object',
+      alias: 'a'
+    })
 }
 
 function handler ({
   bucketOrUri,
-  key: headKey
+  key: headKey,
+  acl
 }) {
   const c = require('@buzuli/color')
   const aws = require('aws-sdk')
@@ -42,6 +48,20 @@ function handler ({
     } else {
       console.info(`${c.green('s3')}://${c.blue(bucket)}/${c.yellow(key)}`)
       console.info(buzJson(data))
+
+      if (acl) {
+        s3.getObjectAcl({
+          Bucket: bucket,
+          Key: key
+        }, (error, data) => {
+          if (error) {
+            console.error(`Error fetching object ACL: ${error}`)
+            process.exit(1)
+          } else {
+            console.info(buzJson(data))
+          }
+        })
+      }
     }
   })
 }
