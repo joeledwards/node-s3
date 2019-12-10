@@ -58,6 +58,7 @@ function handler ({
             console.error(`Error fetching object ACL: ${error}`)
             process.exit(1)
           } else {
+            console.info('Object ACL:')
             console.info(buzJson(data))
           }
         })
