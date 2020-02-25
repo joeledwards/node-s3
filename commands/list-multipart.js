@@ -147,7 +147,7 @@ async function handler (args) {
         }
 
         if (file) {
-          const uri = `s3://bucket/${key}`
+          const uri = `s3://${bucket}/${key}`
           const json = JSON.stringify({
             timestamp: timestamp.toISOString(),
             bucket,
