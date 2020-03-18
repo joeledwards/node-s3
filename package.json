@@ -27,18 +27,20 @@
   "license": "ISC",
   "dependencies": {
     "@buzuli/color": "^2.2.2",
-    "@buzuli/json": "^2.0.2",
+    "@buzuli/json": "^2.1.0",
+    "@buzuli/promised": "^1.0.0",
     "@buzuli/throttle": "^2.0.2",
-    "@buzuli/url": "^1.0.0",
-    "aws-sdk": "^2.575.0",
-    "durations": "^3.4.1",
+    "@buzuli/url": "^1.0.1",
+    "aws-sdk": "^2.641.0",
+    "durations": "^3.4.2",
+    "inquirer": "^7.1.0",
     "moment": "^2.24.0",
     "pretty-bytes": "^5.3.0",
-    "ramda": "^0.26.1",
-    "yargs": "^15.0.2"
+    "ramda": "^0.27.0",
+    "yargs": "^15.3.1"
   },
   "devDependencies": {
-    "standard": "^14.3.0",
-    "tap": "^14.9.2"
+    "standard": "^14.3.3",
+    "tap": "^14.10.6"
   }
 }
