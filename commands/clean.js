@@ -40,7 +40,8 @@ function builder (yargs) {
     })
     .option('dry-run', {
       type: 'boolean',
-      desc: 'do not actually delete anything, just simulate it'
+      desc: 'do not actually delete anything, just simulate it',
+      alias: 'D'
     })
     .option('force', {
       type: 'boolean',
@@ -105,7 +106,7 @@ async function clean (args) {
 
   const regex = keyRegex ? new RegExp(keyRegex) : undefined
 
-  const uriStr = `s3://${c.blue(bucket)}/${c.yellow(prefix)}`
+  const uriStr = `s3://${c.blue(bucket)}/${prefix ? c.yellow(prefix) : ''}`
   const matchStr = regex ? `matching regex /${c.purple(keyRegex)}/ ` : ''
 
   // Confirm the user wishes to proceed with cleaning
@@ -116,6 +117,7 @@ async function clean (args) {
     } = await inquirer.prompt([{
       type: 'confirm',
       name: 'proceed',
+      default: false,
       message: `Delete all keys at ${uriStr} ${matchStr}?`
     }])
 
@@ -164,13 +166,16 @@ async function clean (args) {
         }
       }
 
+      // Delete them for real!
       const {
         Deleted: deleted
       } = await promised(h => s3.deleteObjects(options, h))
 
-      count += keys.length
       deletedKeys = deleted.map(({ Key: key }) => key)
     }
+
+    // Count the number of deletions even for dry-run
+    count += keys.length
 
     return deletedKeys
   }
