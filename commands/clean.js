@@ -111,7 +111,6 @@ async function clean (args) {
 
   // Confirm the user wishes to proceed with cleaning
   async function verify () {
-
     const {
       proceed
     } = await inquirer.prompt([{
@@ -181,7 +180,7 @@ async function clean (args) {
   }
 
   // Scan keys from the prefix on S3
-  async function* scan (bucket, prefix) {
+  async function * scan (bucket, prefix) {
     let token
     let hasMore = true
 
@@ -206,7 +205,7 @@ async function clean (args) {
         NextContinuationToken: nextToken
       } = result
 
-      for (const { Key: key, Size: bytes} of keys) {
+      for (const { Key: key, Size: bytes } of keys) {
         yield { key, bytes }
       }
 
