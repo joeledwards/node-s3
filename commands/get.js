@@ -28,13 +28,48 @@ function builder (yargs) {
       default: false,
       alias: 'S'
     })
+    .option('range', {
+      type: 'string',
+      desc: 'the inclusive byte range to download (e.g., "0-499"); remember to quote the range',
+      coerce: validateRange,
+      alias: 'R'
+    })
+}
+
+function validateRange (range) {
+  const invalid = () => {
+    throw new Error(`Invalid range: "${range}"`)
+  }
+
+  const parts = range.match(/^(\d+)(?:-(\d+))?$/)
+
+  if (!parts) {
+    invalid()
+  }
+
+  const [, start, end] = parts.map(n => Number.parseInt(n))
+
+  if (Number.isNaN(start)) {
+    invalid()
+  }
+
+  if (Number.isNaN(end)) {
+    return `${start}-${start}`
+  }
+
+  if (start > end) {
+    invalid()
+  }
+
+  return range
 }
 
 function handler ({
   bucketOrUri,
   key: getKey,
   file,
-  stdout
+  stdout,
+  range
 }) {
   const fs = require('fs')
   const aws = require('aws-sdk')
@@ -68,10 +103,16 @@ function handler ({
     console.info(`Fetching s3://${bucket}/${key} to ${file} ...`)
   }
 
-  const s3Stream = s3.getObject({
+  const params = {
     Bucket: bucket,
     Key: key
-  }).createReadStream()
+  }
+
+  if (range) {
+    params.Range = `bytes=${range}`
+  }
+
+  const s3Stream = s3.getObject(params).createReadStream()
 
   s3Stream.on('error', error => {
     console.error(`Error fetching S3 object : ${error}`)
