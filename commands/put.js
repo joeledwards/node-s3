@@ -31,6 +31,11 @@ function builder (yargs) {
       desc: 'headers to add to the S3 object (e.g. -h "ContentEncoding:gzip")',
       alias: 'h'
     })
+    .option('metadata', {
+      type: 'array',
+      desc: 'metadata to be applied to the object (e.g. -m "git-hash:feedbeef")',
+      alias: 'm'
+    })
     .option('publish', {
       type: 'boolean',
       desc: 'make the resource public (read-only)',
@@ -49,12 +54,18 @@ function builder (yargs) {
       default: 1,
       alias: 'q'
     })
+    .option('verbose', {
+      type: 'boolean',
+      desc: '',
+      alias: 'v'
+    })
 }
 
 async function handler (args) {
   const r = require('ramda')
   const fs = require('fs')
   const aws = require('aws-sdk')
+  const buzJson = require('@buzuli/json')
   const { resolveResourceInfo } = require('../lib/util')
 
   const {
@@ -63,9 +74,11 @@ async function handler (args) {
     file,
     stdin,
     header,
+    metadata,
     publish,
     partSize,
-    queueSize
+    queueSize,
+    verbose
   } = args
 
   const s3 = new aws.S3()
@@ -97,11 +110,25 @@ async function handler (args) {
     process.exit(1)
   }
 
+  const metadataRecord = r.compose(
+    r.fromPairs,
+    r.filter(r.complement(r.isNil)),
+    r.map(splitHeader),
+    r.filter(r.complement(r.isNil))
+  )(metadata || [])
+
   const headers = r.compose(
     r.filter(r.complement(r.isNil)),
     r.map(splitHeader),
     r.filter(r.complement(r.isNil))
   )(header || [])
+
+  if (verbose) {
+    console.info('Headers:')
+    console.info(buzJson(headers))
+    console.info('Metadata:')
+    console.info(buzJson(metadataRecord))
+  }
 
   let sourceStream
   if (stdin) {
@@ -118,7 +145,8 @@ async function handler (args) {
   const params = {
     Body: sourceStream,
     Bucket: bucket,
-    Key: key
+    Key: key,
+    Metadata: metadataRecord
   }
 
   headers.forEach(([name, value]) => { params[name] = value })
