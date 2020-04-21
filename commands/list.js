@@ -20,7 +20,13 @@ function builder (yargs) {
     .option('delimiter', {
       type: 'string',
       desc: 'the heirarchy delimiter to use for key listings',
-      default: '/'
+      default: '/',
+      alias: 'd'
+    })
+    .option('no-delimiter', {
+      type: 'boolean',
+      desc: 'do not use a delimiter (no common prefixes)',
+      alias: 'D'
     })
     .option('start-after', {
       type: 'string',
@@ -103,6 +109,7 @@ function listKeys ({
   bucketOrUri,
   prefix: listPrefix,
   delimiter,
+  noDelimiter,
   startAfter,
   limit,
   unlimited
@@ -124,9 +131,12 @@ function listKeys ({
     const options = {
       Bucket: bucket,
       Prefix: prefix,
-      Delimiter: delimiter,
       StartAfter: startAfter,
       MaxKeys: Math.min(1000, unlimited ? 1000 : (limit - keyCount))
+    }
+
+    if (!noDelimiter) {
+      options.Delimiter = delimiter
     }
 
     if (token) {
