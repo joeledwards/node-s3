@@ -133,14 +133,13 @@ async function clean (args) {
   log(`Deleting keys at ${uriStr} ${matchStr} ...`)
 
   // Configure the reporter
-  const reporter = () => throttle({
+  const noop = () => {}
+  const reporter = quiet ? noop : report
+  const notify = throttle({
     minDelay: reportFrequency,
     maxDelay: reportFrequency * 2,
-    reportFunc: () => report()
+    reportFunc: () => reporter()
   })
-
-  const noop = () => {}
-  const notify = quiet ? noop : reporter()
 
   const s3 = new aws.S3()
 
