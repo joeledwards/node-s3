@@ -9,15 +9,15 @@ function builder (yargs) {
   yargs
     .positional('bucket-or-uri', {
       type: 'string',
-      desc: 'the bucket or URI which should be cleaned'
+      desc: 'the bucket or URI which should be scanned'
     })
     .positional('prefix', {
       type: 'string',
-      desc: 'a prefix to which cleaning should be limited'
+      desc: 'a prefix to which scanning should be limited'
     })
     .option('key-regex', {
       type: 'string',
-      desc: 'only remove keys whose names match the regular expression',
+      desc: 'only scan contents of keys whose names match the regular expression',
       alias: 'k'
     })
     .option('verbose', {
