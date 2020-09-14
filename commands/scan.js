@@ -37,7 +37,7 @@ async function handler (args) {
   try {
     await scan(args)
   } catch (error) {
-    if (error.code != 'EPIPE') {
+    if (error.code !== 'EPIPE') {
       console.error('Fatal:', error)
     }
     process.exit(1)
