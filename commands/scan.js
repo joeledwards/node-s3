@@ -37,7 +37,9 @@ async function handler (args) {
   try {
     await scan(args)
   } catch (error) {
-    console.error('Fatal:', error)
+    if (error.code != 'EPIPE') {
+      console.error('Fatal:', error)
+    }
     process.exit(1)
   }
 }
@@ -143,6 +145,7 @@ async function scan (args) {
         }).createReadStream()
 
         inStream.once('error', error => reject(error))
+        outStream.once('error', error => reject(error))
 
         const forwardData = () => {
           const buffer = inStream.read()
