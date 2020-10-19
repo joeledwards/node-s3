@@ -47,6 +47,10 @@ function handler ({
       process.exit(1)
     } else {
       console.info(`${c.green('s3')}://${c.blue(bucket)}/${c.yellow(key)}`)
+      try {
+        data.LastModified = data.LastModified.toISOString()
+      } catch (ignore) {
+      }
       console.info(buzJson(data))
 
       if (acl) {

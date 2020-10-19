@@ -47,6 +47,7 @@ async function handler (args) {
 async function scan (args) {
   const c = require('@buzuli/color')
   const aws = require('aws-sdk')
+  const gunzip = require('gunzip-maybe')
   const promised = require('@buzuli/promised')
   const throttle = require('@buzuli/throttle')
   const prettyBytes = require('pretty-bytes')
@@ -78,14 +79,14 @@ async function scan (args) {
     const sizeStr = c.yellow(prettyBytes(bytesRead))
     const timeStr = c.blue(watch)
     const keyStr = c.yellow(lastKey)
-    console.info(`Scanned ${scanStr} of ${totalStr} keys => ${sizeStr} in ${timeStr} [${keyStr}]`)
+    console.error(`Scanned ${scanStr} of ${totalStr} keys => ${sizeStr} in ${timeStr} [${keyStr}]`)
   }
 
   if (verbose) {
     const uriStr = `s3://${c.blue(bucket)}/${prefix ? c.yellow(prefix) : ''}`
     const matchStr = regex ? ` matching regex /${c.purple(keyRegex)}/` : ''
 
-    console.info(`Scanning object content at ${uriStr}${matchStr}`)
+    console.error(`Scanning object content at ${uriStr}${matchStr}`)
   }
 
   // Configure the reporting
@@ -139,41 +140,55 @@ async function scan (args) {
       try {
         const outStream = process.stdout
 
-        const inStream = s3.getObject({
+        if (verbose) {
+          console.error(`Scanning Key : ${key}`)
+        }
+
+        const objStream = s3.getObject({
           Bucket: bucket,
           Key: key
         }).createReadStream()
 
-        inStream.once('error', error => reject(error))
-        outStream.once('error', error => reject(error))
+        const gunzipStream = gunzip()
 
-        const forwardData = () => {
-          const buffer = inStream.read()
-          if (buffer == null) {
-            return true
-          } else {
-            bytesRead += buffer.length
-            return outStream.write(buffer)
-          }
-        }
+        const errorHandler = error => reject(error)
 
-        inStream.once('end', () => {
-          forwardData()
+        objStream.once('error', errorHandler)
+        outStream.once('error', errorHandler)
+        gunzipStream.once('error', errorHandler)
+
+        const completed = () => {
+          objStream.removeAllListeners()
+          gunzipStream.removeAllListeners()
+          outStream.removeListener('error', errorHandler)
           resolve()
-        })
-
-        const handleDrain = () => {
-          inStream.resume()
         }
 
-        const handleReadable = () => {
-          if (!forwardData()) {
+        // This is the stream we forward
+        const inStream = objStream.pipe(gunzipStream)
+
+        const handleDrain = () => inStream.resume()
+
+        const forwardData = data => {
+          bytesRead += data.length
+          return outStream.write(data)
+        }
+
+        const handleData = data => {
+          if (!forwardData(data)) {
+            // The write method buffered our data, but
+            // signalled for us to wait for a drain event
             inStream.pause()
             outStream.once('drain', handleDrain)
           }
         }
 
-        inStream.on('readable', handleReadable)
+        inStream.on('data', handleData)
+
+        inStream.once('end', () => {
+          inStream.removeListener('data', handleData)
+          completed()
+        })
       } catch (error) {
         reject(error)
       }

@@ -33,6 +33,7 @@
     "@buzuli/url": "^1.0.1",
     "aws-sdk": "^2.756.0",
     "durations": "^3.4.2",
+    "gunzip-maybe": "^1.4.2",
     "inquirer": "^7.3.3",
     "moment": "^2.28.0",
     "pretty-bytes": "^5.4.1",
