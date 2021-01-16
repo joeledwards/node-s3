@@ -1,8 +1,10 @@
+const handler = require('../lib/handler')
+
 module.exports = {
   command: 'list [bucket-or-uri] [prefix]',
   desc: 'list resources in an S3 bucket',
   builder,
-  handler
+  handler: handler(list)
 }
 
 function builder (yargs) {
@@ -52,21 +54,20 @@ function builder (yargs) {
     })
 }
 
-function handler (options) {
+function list ({ aws, options }) {
   if (!options.bucketOrUri) {
-    formatBuckets(listBuckets())
+    formatBuckets(listBuckets({ aws }))
   } else {
-    formatKeys(listKeys(options), options)
+    formatKeys({ keys: listKeys({ aws, options }), options })
   }
 }
 
 // List S3 buckets
-function listBuckets () {
-  const aws = require('aws-sdk')
+function listBuckets ({ aws }) {
   const moment = require('moment')
   const EventEmitter = require('events')
 
-  const s3 = new aws.S3()
+  const s3 = aws.s3().sdk
   const events = new EventEmitter()
 
   const getBucketRegion = async bucket => {
@@ -106,22 +107,24 @@ function listBuckets () {
 
 // List S3 keys
 function listKeys ({
-  bucketOrUri,
-  prefix: listPrefix,
-  delimiter,
-  noDelimiter,
-  startAfter,
-  limit,
-  unlimited
+  aws,
+  options: {
+    bucketOrUri,
+    prefix: listPrefix,
+    delimiter,
+    noDelimiter,
+    startAfter,
+    limit,
+    unlimited
+  }
 }) {
-  const aws = require('aws-sdk')
   const moment = require('moment')
   const EventEmitter = require('events')
   const { resolveResourceInfo } = require('../lib/util')
 
   const { bucket, key: prefix } = resolveResourceInfo(bucketOrUri, listPrefix)
 
-  const s3 = new aws.S3()
+  const s3 = aws.s3().sdk
   const events = new EventEmitter()
 
   let keyCount = 0
@@ -235,7 +238,7 @@ function formatBuckets (buckets) {
 }
 
 // Format and print keys as they are observed
-function formatKeys (keys, { format }) {
+function formatKeys ({ keys, options: { format } }) {
   const c = require('@buzuli/color')
   const { padString } = require('../lib/util')
 

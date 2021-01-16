@@ -1,8 +1,10 @@
+const handler = require('../lib/handler')
+
 module.exports = {
   command: 'head <bucket-or-uri> [key]',
   desc: 'fetch metadata for an S3 object',
   builder,
-  handler
+  handler: handler(head)
 }
 
 function builder (yargs) {
@@ -24,17 +26,19 @@ function builder (yargs) {
     })
 }
 
-function handler ({
-  bucketOrUri,
-  key: headKey,
-  acl
+function head ({
+  aws,
+  options: {
+    bucketOrUri,
+    key: headKey,
+    acl
+  }
 }) {
   const c = require('@buzuli/color')
-  const aws = require('aws-sdk')
   const buzJson = require('@buzuli/json')
   const { resolveResourceInfo } = require('../lib/util')
 
-  const s3 = new aws.S3()
+  const s3 = aws.s3().sdk
 
   const { bucket, key } = resolveResourceInfo(bucketOrUri, headKey)
 

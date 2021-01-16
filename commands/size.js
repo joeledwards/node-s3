@@ -1,8 +1,10 @@
+const handler = require('../lib/handler')
+
 module.exports = {
   command: 'size <bucket-or-uri> [prefix]',
   desc: 'count the bytes and objects at an S3 location',
   builder,
-  handler
+  handler: handler(s3Size)
 }
 
 function builder (yargs) {
@@ -40,7 +42,7 @@ function builder (yargs) {
     })
 }
 
-async function handler (args) {
+async function s3Size ({ aws, options: args }) {
   const c = require('@buzuli/color')
   const throttle = require('@buzuli/throttle')
   const prettyBytes = require('pretty-bytes')
@@ -83,7 +85,7 @@ async function handler (args) {
   const noop = () => {}
   const notify = quiet ? noop : reporter()
 
-  const scanner = scan(bucket, prefix)
+  const scanner = scan({ aws, bucket, prefix })
 
   scanner.on('error', error => {
     console.error('Error counting data volume:', error)
@@ -114,11 +116,10 @@ async function handler (args) {
   })
 }
 
-function scan (bucket, prefix) {
-  const aws = require('aws-sdk')
+function scan ({ aws, bucket, prefix }) {
   const EventEmitter = require('events')
 
-  const s3 = new aws.S3()
+  const s3 = aws.s3().sdk
   const events = new EventEmitter()
 
   const listMore = token => {

@@ -1,8 +1,10 @@
+const handler = require('../lib/handler')
+
 module.exports = {
   command: 'scan <bucket-or-uri> [prefix]',
   desc: 'scan the content of keys in an S3 bucket, optional prefix and regex key filter',
   builder,
-  handler
+  handler: handler(s3Scan)
 }
 
 function builder (yargs) {
@@ -33,9 +35,9 @@ function builder (yargs) {
     })
 }
 
-async function handler (args) {
+async function s3Scan (options) {
   try {
-    await scan(args)
+    await scan(options)
   } catch (error) {
     if (error.code !== 'EPIPE') {
       console.error('Fatal:', error)
@@ -44,9 +46,8 @@ async function handler (args) {
   }
 }
 
-async function scan (args) {
+async function scan ({ aws, options: args }) {
   const c = require('@buzuli/color')
-  const aws = require('aws-sdk')
   const gunzip = require('gunzip-maybe')
   const promised = require('@buzuli/promised')
   const throttle = require('@buzuli/throttle')
@@ -98,7 +99,7 @@ async function scan (args) {
     reportFunc: () => reporter()
   })
 
-  const s3 = new aws.S3()
+  const s3 = aws.s3().sdk
 
   // Scan keys from the prefix on S3
   async function * scan (bucket, prefix) {

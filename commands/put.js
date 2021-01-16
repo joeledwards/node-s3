@@ -1,8 +1,10 @@
+const handler = require('../lib/handler')
+
 module.exports = {
   command: 'put <bucket-or-uri> [key]',
   desc: 'write a resource to s3',
   builder,
-  handler
+  handler: handler(put)
 }
 
 function builder (yargs) {
@@ -61,10 +63,9 @@ function builder (yargs) {
     })
 }
 
-async function handler (args) {
+async function put ({ aws, options: args }) {
   const r = require('ramda')
   const fs = require('fs')
-  const aws = require('aws-sdk')
   const buzJson = require('@buzuli/json')
   const { resolveResourceInfo } = require('../lib/util')
 
@@ -81,7 +82,7 @@ async function handler (args) {
     verbose
   } = args
 
-  const s3 = new aws.S3()
+  const s3 = aws.s3().sdk
 
   const { bucket, key } = resolveResourceInfo(bucketOrUri, putKey)
 

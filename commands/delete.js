@@ -1,8 +1,10 @@
+const handler = require('../lib/handler')
+
 module.exports = {
   command: 'delete <bucket-or-uri> [key]',
   desc: 'delete an s3 resource',
   builder,
-  handler
+  handler: handler(del)
 }
 
 function builder (yargs) {
@@ -19,14 +21,16 @@ function builder (yargs) {
     })
 }
 
-function handler ({
-  bucketOrUri,
-  key: deleteKey
+function del ({
+  aws,
+  options: {
+    bucketOrUri,
+    key: deleteKey
+  }
 }) {
-  const aws = require('aws-sdk')
   const { resolveResourceInfo } = require('../lib/util')
 
-  const s3 = new aws.S3()
+  const s3 = aws.s3().sdk
 
   const { bucket, key } = resolveResourceInfo(bucketOrUri, deleteKey)
 

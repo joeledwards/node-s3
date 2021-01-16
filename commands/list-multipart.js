@@ -1,6 +1,7 @@
+const handler = require('../lib/handler')
+
 const c = require('@buzuli/color')
 const fs = require('fs')
-const aws = require('aws-sdk')
 const moment = require('moment')
 const throttle = require('@buzuli/throttle')
 const durations = require('durations')
@@ -10,7 +11,7 @@ module.exports = {
   command: 'list-multipart <bucket-or-uri> [prefix]',
   desc: 'list incomplete multi-part uploads',
   builder,
-  handler
+  handler: handler(listMultipart)
 }
 
 function builder (yargs) {
@@ -51,7 +52,7 @@ function builder (yargs) {
     })
 }
 
-async function handler (args) {
+async function listMultipart ({ aws, options: args }) {
   const {
     bucketOrUri,
     prefix: scanPrefix,
@@ -68,7 +69,7 @@ async function handler (args) {
   let count = 0
   let exhausted = false
   const notify = throttle({ reportFunc: progressReport })
-  const s3 = new aws.S3()
+  const s3 = aws.s3().sdk
   const watch = durations.stopwatch().start()
   const makeRecords = file || verbose
   const outStream = file ? fs.createWriteStream(file) : undefined

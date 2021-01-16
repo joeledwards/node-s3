@@ -1,8 +1,10 @@
+const handler = require('../lib/handler')
+
 module.exports = {
   command: 'get <bucket-or-uri> [key]',
   desc: 'fetch an s3 resource',
   builder,
-  handler
+  handler: handler(get)
 }
 
 function builder (yargs) {
@@ -64,19 +66,21 @@ function validateRange (range) {
   return range
 }
 
-function handler ({
-  bucketOrUri,
-  key: getKey,
-  file,
-  stdout,
-  range
+function get ({
+  aws,
+  options: {
+    bucketOrUri,
+    key: getKey,
+    file,
+    stdout,
+    range
+  }
 }) {
   const fs = require('fs')
-  const aws = require('aws-sdk')
   const path = require('path')
   const { resolveResourceInfo } = require('../lib/util')
 
-  const s3 = new aws.S3()
+  const s3 = aws.s3().sdk
 
   const { bucket, key } = resolveResourceInfo(bucketOrUri, getKey)
 

@@ -1,8 +1,10 @@
+const handler = require('../lib/handler')
+
 module.exports = {
   command: 'clean <bucket-or-uri> [prefix]',
   desc: 'purge the contents of an S3 bucket or prefix and optional regex key filter',
   builder,
-  handler
+  handler: handler(clean)
 }
 
 function builder (yargs) {
@@ -49,18 +51,8 @@ function builder (yargs) {
     })
 }
 
-async function handler (args) {
-  try {
-    await clean(args)
-  } catch (error) {
-    console.error('Fatal:', error)
-    process.exit(1)
-  }
-}
-
-async function clean (args) {
+async function clean ({ aws, options: args }) {
   const c = require('@buzuli/color')
-  const aws = require('aws-sdk')
   const inquirer = require('inquirer')
   const promised = require('@buzuli/promised')
   const throttle = require('@buzuli/throttle')
@@ -141,7 +133,7 @@ async function clean (args) {
     reportFunc: () => reporter()
   })
 
-  const s3 = new aws.S3()
+  const s3 = aws.s3().sdk
 
   // Delete a batch of keys
   async function deleteKeys (keys = []) {
