@@ -115,7 +115,7 @@ async function clean ({ aws, options: args }) {
     return proceed
   }
 
-  if (!force) {
+  if (!force && !dryRun) {
     if (!(await verify())) {
       console.info('Understood. Doing nothing.')
       process.exit(0)

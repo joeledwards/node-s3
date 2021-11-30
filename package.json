@@ -27,22 +27,23 @@
   "license": "ISC",
   "dependencies": {
     "@buzuli/app": "^1.2.1",
-    "@buzuli/aws": "^3.3.0",
+    "@buzuli/aws": "^4.3.0",
     "@buzuli/color": "^2.2.2",
     "@buzuli/json": "^2.1.0",
+    "@buzuli/meter": "^1.4.0",
     "@buzuli/promised": "^1.0.0",
     "@buzuli/throttle": "^2.0.2",
     "@buzuli/url": "^1.0.1",
     "durations": "^3.4.2",
     "gunzip-maybe": "^1.4.2",
-    "inquirer": "^7.3.3",
+    "inquirer": "^8.2.0",
     "moment": "^2.29.1",
     "pretty-bytes": "^5.5.0",
     "ramda": "^0.27.1",
-    "yargs": "^16.2.0"
+    "yargs": "^17.2.1"
   },
   "devDependencies": {
     "standard": "^16.0.3",
-    "tap": "^14.11.0"
+    "tap": "^15.1.5"
   }
 }

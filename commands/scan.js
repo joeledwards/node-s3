@@ -29,8 +29,8 @@ function builder (yargs) {
     })
     .option('report-frequency', {
       type: 'number',
-      desc: 'print updates at this frequency (only meaningful when in verbose mode)',
-      default: 5000,
+      desc: 'print updates at this frequency (floating-point seconds; only meaningful when in verbose mode)',
+      default: 5,
       alias: 'r'
     })
 }
@@ -94,8 +94,8 @@ async function scan ({ aws, options: args }) {
   const noop = () => {}
   const reporter = verbose ? report : noop
   const notify = throttle({
-    minDelay: reportFrequency,
-    maxDelay: reportFrequency * 2,
+    minDelay: reportFrequency * 1000,
+    maxDelay: reportFrequency * 1000 * 2,
     reportFunc: () => reporter()
   })
 
