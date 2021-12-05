@@ -43,6 +43,10 @@ function validateRange (range) {
     throw new Error(`Invalid range: "${range}"`)
   }
 
+  if (range == null) {
+    return undefined
+  }
+
   const parts = range.match(/^(\d+)(?:-(\d+))?$/)
 
   if (!parts) {
