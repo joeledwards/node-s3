@@ -18,37 +18,42 @@ function builder (yargs) {
   yargs
     .positional('bucket-or-uri', {
       type: 'string',
-      desc: 'the bucket containing the prefix or the uri to scan for multi-part uploads'
+      desc: 'the bucket containing the prefix or the uri to scan for multi-part uploads',
     })
     .positional('prefix', {
       type: 'string',
-      desc: 'the key prefix to which the scan should be limited'
+      desc: 'the key prefix to which the scan should be limited',
     })
     .option('delimiter', {
       type: 'string',
       desc: 'the delimiter for common prefixes (none by default)',
-      alias: 'd'
+      alias: 'd',
     })
     .option('limit', {
       type: 'number',
       desc: 'the maximum number of values to return',
-      alias: 'l'
+      alias: 'l',
     })
     .option('page-size', {
       type: 'number',
       desc: 'fetch this many entries per request; max of 1000',
       default: 1000,
-      alias: ['page', 'P']
+      alias: ['page', 'P'],
     })
     .option('file', {
       type: 'string',
       desc: 'write out NDJSON file detailing the identified multi-part uploads',
-      alias: 'f'
+      alias: 'f',
+    })
+    .option('extended', {
+      type: 'boolean',
+      desc: 'fetch extended MPU info (results in an additional request per MPU to fetch part info)',
+      alias: 'x',
     })
     .option('verbose', {
       type: 'boolean',
       desc: 'write details for each multi-part upload to the console',
-      alias: 'v'
+      alias: 'v',
     })
 }
 
@@ -60,10 +65,13 @@ async function listMultipart ({ aws, options: args }) {
     limit,
     pageSize,
     file,
+    extended,
     verbose
   } = args
 
   const { bucket, key: prefix } = resolveResourceInfo(bucketOrUri, scanPrefix)
+
+  const prettyBytes = require('pretty-bytes')
 
   let requestCount = 0
   let count = 0
@@ -71,7 +79,7 @@ async function listMultipart ({ aws, options: args }) {
   const notify = throttle({ reportFunc: progressReport })
   const s3 = aws.s3().sdk
   const watch = durations.stopwatch().start()
-  const makeRecords = file || verbose
+  const makeRecords = file || verbose || extended
   const outStream = file ? fs.createWriteStream(file) : undefined
 
   try {
@@ -104,6 +112,14 @@ async function listMultipart ({ aws, options: args }) {
     })
   }
 
+  async function listParts (options) {
+    return new Promise((resolve, reject) => {
+      s3.listParts(options, (error, data) => {
+        error ? reject(error) : resolve(data)
+      })
+    })
+  }
+
   async function listMore ({ bucket, prefix, delimiter, remaining, keyMarker, idMarker }) {
     const options = {
       Bucket: bucket,
@@ -130,21 +146,68 @@ async function listMultipart ({ aws, options: args }) {
     if (makeRecords) {
       const records = uploads.map(({
         Key: key,
-        Initiated: startTime
+        Initiated: startTime,
+        UploadId: uploadId,
       }) => {
         const timestamp = moment(startTime).utc()
 
-        return { timestamp, key }
+        return { timestamp, key, uploadId }
       })
 
-      records.forEach(record => {
-        const { timestamp, key } = record
+      for (const record of records) {
+        const { timestamp, key, uploadId } = record
 
-        if (verbose) {
+        let partList
+        let bytes
+
+        if (extended) {
+          bytes = 0
+
+          const listingOptions = {
+            Bucket: bucket,
+            Key: key,
+            UploadId: uploadId
+          }
+
+          const partsData = await listParts(listingOptions)
+
+          const parts = partsData.Parts.map(({
+            ETag: etag,
+            LastModified: lastModified,
+            PartNumber: number,
+            Size: size,
+          }) => {
+            bytes = (bytes || 0) + size
+            const modified = moment.utc(lastModified)
+            return { etag, modified, number, size }
+          })
+
+          parts.forEach(({ etag, modified, number, size }) => {
+            const age = c.blue(durations.millis(moment().utc().diff(modified)))
+            const date = c.green(modified.format('YYYY-MM-DD'))
+            const time = c.yellow(modified.format('HH:mm:ss'))
+            const sizeStr = c.yellow(prettyBytes(size))
+            const bytesStr = c.orange(size.toLocaleString())
+            const sizeInfo = ` => ${sizeStr} (${bytesStr} bytes)`
+            console.info(`${date} ${time} (${age}) ${c.white(number)} [${c.purple(etag)}]${sizeInfo}`)
+          })
+
+          partList = parts.map(({ etag, modified, number, size, }) => {
+            return { etag, modified: modified.toISOString(), number, size }
+          })
+        }
+
+        if (verbose || extended) {
           const age = c.blue(durations.millis(moment().utc().diff(timestamp)))
           const date = c.green(timestamp.format('YYYY-MM-DD'))
           const time = c.yellow(timestamp.format('HH:mm:ss'))
-          console.info(`${date} ${time} (${age}) s3://${c.blue(bucket)}/${c.yellow(key)}`)
+          let sizeInfo = ''
+          if (bytes != null) {
+            const sizeStr = c.yellow(prettyBytes(bytes))
+            const bytesStr = c.orange(bytes.toLocaleString())
+            sizeInfo = ` => ${sizeStr} (${bytesStr} bytes)`
+          }
+          console.info(`${date} ${time} (${age}) s3://${c.blue(bucket)}/${c.yellow(key)}${sizeInfo}`)
         }
 
         if (file) {
@@ -153,12 +216,13 @@ async function listMultipart ({ aws, options: args }) {
             timestamp: timestamp.toISOString(),
             bucket,
             key,
-            uri
+            uri,
+            parts: partList
           })
 
           outStream.write(`${json}\n`)
         }
-      })
+      }
     }
 
     if (remaining != null && remaining < 1) {
