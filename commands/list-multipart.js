@@ -18,42 +18,42 @@ function builder (yargs) {
   yargs
     .positional('bucket-or-uri', {
       type: 'string',
-      desc: 'the bucket containing the prefix or the uri to scan for multi-part uploads',
+      desc: 'the bucket containing the prefix or the uri to scan for multi-part uploads'
     })
     .positional('prefix', {
       type: 'string',
-      desc: 'the key prefix to which the scan should be limited',
+      desc: 'the key prefix to which the scan should be limited'
     })
     .option('delimiter', {
       type: 'string',
       desc: 'the delimiter for common prefixes (none by default)',
-      alias: 'd',
+      alias: 'd'
     })
     .option('limit', {
       type: 'number',
       desc: 'the maximum number of values to return',
-      alias: 'l',
+      alias: 'l'
     })
     .option('page-size', {
       type: 'number',
       desc: 'fetch this many entries per request; max of 1000',
       default: 1000,
-      alias: ['page', 'P'],
+      alias: ['page', 'P']
     })
     .option('file', {
       type: 'string',
       desc: 'write out NDJSON file detailing the identified multi-part uploads',
-      alias: 'f',
+      alias: 'f'
     })
     .option('extended', {
       type: 'boolean',
       desc: 'fetch extended MPU info (results in an additional request per MPU to fetch part info)',
-      alias: 'x',
+      alias: 'x'
     })
     .option('verbose', {
       type: 'boolean',
       desc: 'write details for each multi-part upload to the console',
-      alias: 'v',
+      alias: 'v'
     })
 }
 
@@ -147,7 +147,7 @@ async function listMultipart ({ aws, options: args }) {
       const records = uploads.map(({
         Key: key,
         Initiated: startTime,
-        UploadId: uploadId,
+        UploadId: uploadId
       }) => {
         const timestamp = moment(startTime).utc()
 
@@ -175,7 +175,7 @@ async function listMultipart ({ aws, options: args }) {
             ETag: etag,
             LastModified: lastModified,
             PartNumber: number,
-            Size: size,
+            Size: size
           }) => {
             bytes = (bytes || 0) + size
             const modified = moment.utc(lastModified)
@@ -192,7 +192,7 @@ async function listMultipart ({ aws, options: args }) {
             console.info(`${date} ${time} (${age}) ${c.white(number)} [${c.purple(etag)}]${sizeInfo}`)
           })
 
-          partList = parts.map(({ etag, modified, number, size, }) => {
+          partList = parts.map(({ etag, modified, number, size }) => {
             return { etag, modified: modified.toISOString(), number, size }
           })
         }

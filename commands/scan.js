@@ -11,32 +11,32 @@ function builder (yargs) {
   yargs
     .positional('bucket-or-uri', {
       type: 'string',
-      desc: 'the bucket or URI which should be scanned',
+      desc: 'the bucket or URI which should be scanned'
     })
     .positional('prefix', {
       type: 'string',
-      desc: 'a prefix to which scanning should be limited',
+      desc: 'a prefix to which scanning should be limited'
     })
     .option('key-regex', {
       type: 'string',
       desc: 'only scan contents of keys whose names match the regular expression',
-      alias: 'k',
+      alias: 'k'
     })
     .option('inject-newlines', {
       type: 'boolean',
       desc: 'add a newline into the stream after every object',
-      alias: ['i', 'in'],
+      alias: ['i', 'in']
     })
     .option('verbose', {
       type: 'boolean',
       desc: 'report progress details to stderr',
-      alias: 'v',
+      alias: 'v'
     })
     .option('report-frequency', {
       type: 'number',
       desc: 'print updates at this frequency (floating-point seconds; only meaningful when in verbose mode)',
       default: 5,
-      alias: 'r',
+      alias: 'r'
     })
 }
 
