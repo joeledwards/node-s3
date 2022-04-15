@@ -45,6 +45,16 @@ function builder (yargs) {
       desc: 'write out NDJSON file detailing the identified multi-part uploads',
       alias: 'f'
     })
+    .option('size', {
+      type: 'boolean',
+      desc: 'show size of each key',
+      alias: 's'
+    })
+    .option('show-ids', {
+      type: 'boolean',
+      desc: 'show multipart upload IDs',
+      alias: ['ids', 'i']
+    })
     .option('extended', {
       type: 'boolean',
       desc: 'fetch extended MPU info (results in an additional request per MPU to fetch part info)',
@@ -65,6 +75,8 @@ async function listMultipart ({ aws, options: args }) {
     limit,
     pageSize,
     file,
+    size,
+    showIds,
     extended,
     verbose
   } = args
@@ -75,11 +87,12 @@ async function listMultipart ({ aws, options: args }) {
 
   let requestCount = 0
   let count = 0
+  let totalSize = 0
   let exhausted = false
   const notify = throttle({ reportFunc: progressReport })
   const s3 = aws.s3().sdk
   const watch = durations.stopwatch().start()
-  const makeRecords = file || verbose || extended
+  const makeRecords = file || verbose || extended || size
   const outStream = file ? fs.createWriteStream(file) : undefined
 
   try {
@@ -88,10 +101,12 @@ async function listMultipart ({ aws, options: args }) {
     await listMore({ bucket, prefix, delimiter, remaining: limit })
     notify({ force: true, halt: true })
 
+    const sizeInfo = (extended || size) ? ` => ${c.yellow(prettyBytes(totalSize))} (${c.orange(totalSize.toLocaleString())} bytes)` : ''
+
     if (exhausted) {
-      console.info(`All ${c.orange(count)} entries listed.`)
+      console.info(`All ${c.orange(count)} entries listed${sizeInfo}`)
     } else {
-      console.info(`Listed ${c.orange(count)} entries (more available).`)
+      console.info(`Listed ${c.orange(count)} entries (more available)${sizeInfo}`)
     }
 
     if (outStream) {
@@ -160,7 +175,7 @@ async function listMultipart ({ aws, options: args }) {
         let partList
         let bytes
 
-        if (extended) {
+        if (extended || size) {
           bytes = 0
 
           const listingOptions = {
@@ -178,26 +193,29 @@ async function listMultipart ({ aws, options: args }) {
             Size: size
           }) => {
             bytes = (bytes || 0) + size
+            totalSize += size
             const modified = moment.utc(lastModified)
             return { etag, modified, number, size }
           })
 
-          parts.forEach(({ etag, modified, number, size }) => {
-            const age = c.blue(durations.millis(moment().utc().diff(modified)))
-            const date = c.green(modified.format('YYYY-MM-DD'))
-            const time = c.yellow(modified.format('HH:mm:ss'))
-            const sizeStr = c.yellow(prettyBytes(size))
-            const bytesStr = c.orange(size.toLocaleString())
-            const sizeInfo = ` => ${sizeStr} (${bytesStr} bytes)`
-            console.info(`${date} ${time} (${age}) ${c.white(number)} [${c.purple(etag)}]${sizeInfo}`)
-          })
+          if (extended) {
+            parts.forEach(({ etag, modified, number, size }) => {
+              const age = c.blue(durations.millis(moment().utc().diff(modified)))
+              const date = c.green(modified.format('YYYY-MM-DD'))
+              const time = c.yellow(modified.format('HH:mm:ss'))
+              const sizeStr = c.yellow(prettyBytes(size))
+              const bytesStr = c.orange(size.toLocaleString())
+              const sizeInfo = ` => ${sizeStr} (${bytesStr} bytes)`
+              console.info(`${date} ${time} (${age}) ${c.white(number)} [${c.purple(etag)}]${sizeInfo}`)
+            })
+          }
 
           partList = parts.map(({ etag, modified, number, size }) => {
             return { etag, modified: modified.toISOString(), number, size }
           })
         }
 
-        if (verbose || extended) {
+        if (verbose || extended || showIds) {
           const age = c.blue(durations.millis(moment().utc().diff(timestamp)))
           const date = c.green(timestamp.format('YYYY-MM-DD'))
           const time = c.yellow(timestamp.format('HH:mm:ss'))
@@ -207,7 +225,11 @@ async function listMultipart ({ aws, options: args }) {
             const bytesStr = c.orange(bytes.toLocaleString())
             sizeInfo = ` => ${sizeStr} (${bytesStr} bytes)`
           }
-          console.info(`${date} ${time} (${age}) s3://${c.blue(bucket)}/${c.yellow(key)}${sizeInfo}`)
+          let idInfo = ''
+          if (showIds) {
+            idInfo = `\n    UploadId : ${c.yellow(uploadId)}`
+          }
+          console.info(`${date} ${time} (${age}) s3://${c.blue(bucket)}/${c.yellow(key)}${sizeInfo}${idInfo}`)
         }
 
         if (file) {
