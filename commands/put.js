@@ -70,6 +70,7 @@ async function put ({ aws, options: args }) {
   const buzJson = require('@buzuli/json')
   const durations = require('durations')
   const cliProgress = require('cli-progress')
+  const prettyBytes = require('pretty-bytes')
   const { resolveResourceInfo } = require('../lib/util')
 
   const {
@@ -152,15 +153,21 @@ async function put ({ aws, options: args }) {
     }
   }
 
+  // Progress updater
+  function updateProgressBar (bar, completed, total) {
+    const resolvedTotal = total || totalBytes
+    const bytes = resolvedTotal ? `${prettyBytes(completed)} of ${prettyBytes(resolvedTotal)}` : `${prettyBytes(completed)}`
+    const percent = resolvedTotal ? (`${(bufferedBytes/resolvedTotal*100.0).toFixed(1)}%`) : '--'
+    bar.update(completed, { bytes, percent })
+  }
+
   // Set up the progress stream
   const progress = {}
   let bufferedBytes = 0
   const tStream = new stream.Transform({
     transform: (chunk, encoding, callback) => {
       bufferedBytes += chunk.length
-      const bytes = bufferedBytes
-      const percent = totalBytes ? (`${(bufferedBytes/totalBytes*100.0).toFixed(1)}%`) : '--'
-      progress.buffered.update(bufferedBytes, { bytes, percent })
+      updateProgressBar(progress.buffered, bufferedBytes, totalBytes)
 
       callback(null, chunk)
     }
@@ -192,7 +199,9 @@ async function put ({ aws, options: args }) {
   }
 
   const uploadManager = s3.upload(params, options, (error, result) => {
-    progress.bar.update({ title: 'upload complete', progress: 1 })
+    updateProgressBar(progress.buffered, totalBytes || bufferedBytes, totalBytes)
+    updateProgressBar(progress.delivered, totalBytes || bufferedBytes, totalBytes)
+
     progress.bar.stop()
 
     if (error) {
@@ -205,15 +214,12 @@ async function put ({ aws, options: args }) {
   })
 
   uploadManager.on('httpUploadProgress', ({ total, loaded }) => {
-    const deliveredBytes = loaded
-    const bytes = deliveredBytes
-    const percent = totalBytes ? (`${(deliveredBytes/totalBytes*100.0).toFixed(1)}%`) : '--'
-    progress.delivered.update(deliveredBytes, { bytes, percent })
+    updateProgressBar(progress.buffered, loaded, total)
   })
 
   // Build the progress bar
   progress.bar = new cliProgress.MultiBar({
-    format: '{title} {bar} | {bytes} | {percent}'
+    format: '{title} [{bar}] {bytes} | {percent}'
   })
   progress.buffered = progress.bar.create(totalBytes, 0)
   progress.delivered = progress.bar.create(totalBytes, 0)
