@@ -66,7 +66,10 @@ function builder (yargs) {
 async function put ({ aws, options: args }) {
   const r = require('ramda')
   const fs = require('fs')
+  const stream = require('stream')
   const buzJson = require('@buzuli/json')
+  const durations = require('durations')
+  const cliProgress = require('cli-progress')
   const { resolveResourceInfo } = require('../lib/util')
 
   const {
@@ -131,10 +134,16 @@ async function put ({ aws, options: args }) {
     console.info(buzJson(metadataRecord))
   }
 
+  // Setup the source stream
   let sourceStream
+  let totalBytes
   if (stdin) {
     sourceStream = process.stdin
   } else {
+    const { size: fileSize } = await fs.promises.stat(file)
+    totalBytes = fileSize
+    console.info(`${file} length is ${fileSize} bytes`)
+
     sourceStream = fs.createReadStream(file)
     console.info(`Putting ${file} to s3://${bucket}/${key} ...`)
 
@@ -143,11 +152,32 @@ async function put ({ aws, options: args }) {
     }
   }
 
+  // Set up the progress stream
+  const progress = {}
+  let bufferedBytes = 0
+  const tStream = new stream.Transform({
+    transform: (chunk, encoding, callback) => {
+      bufferedBytes += chunk.length
+      const bytes = bufferedBytes
+      const percent = totalBytes ? (`${(bufferedBytes/totalBytes*100.0).toFixed(1)}%`) : '--'
+      progress.buffered.update(bufferedBytes, { bytes, percent })
+
+      callback(null, chunk)
+    }
+  })
+
+  sourceStream.pipe(tStream)
+
+  // Set up the upload to S3
   const params = {
-    Body: sourceStream,
+    Body: tStream,
     Bucket: bucket,
     Key: key,
     Metadata: metadataRecord
+  }
+
+  if (totalBytes) {
+    params.ContentLength = totalBytes
   }
 
   headers.forEach(([name, value]) => { params[name] = value })
@@ -161,12 +191,10 @@ async function put ({ aws, options: args }) {
     queueSize
   }
 
-  let totalKnown = false
-  const progress = {
-    bar: new ProgressBar('  uploading [:bar] :current | :rate/bps')
-  }
+  const uploadManager = s3.upload(params, options, (error, result) => {
+    progress.bar.update({ title: 'upload complete', progress: 1 })
+    progress.bar.stop()
 
-  const managedUpload = s3.upload(params, options, (error, result) => {
     if (error) {
       console.error(`Error putting S3 object : ${error}`)
       process.exit(1)
@@ -176,13 +204,29 @@ async function put ({ aws, options: args }) {
     }
   })
 
-  managedUpload.on('httpUploadProgress', ({ total, loaded }) => {
-    if (loaded != null && !totalKnown) {
-      totalKnown = true
-      progress.bar.interrupt()
-      progress.bar = new ProgressBar('  uploading [:bar] :current/:total :percent | :rate/bps', { total })
-    }
-
-    progress.bar.tick(loaded)
+  uploadManager.on('httpUploadProgress', ({ total, loaded }) => {
+    const deliveredBytes = loaded
+    const bytes = deliveredBytes
+    const percent = totalBytes ? (`${(deliveredBytes/totalBytes*100.0).toFixed(1)}%`) : '--'
+    progress.delivered.update(deliveredBytes, { bytes, percent })
   })
+
+  // Build the progress bar
+  progress.bar = new cliProgress.MultiBar({
+    format: '{title} {bar} | {bytes} | {percent}'
+  })
+  progress.buffered = progress.bar.create(totalBytes, 0)
+  progress.delivered = progress.bar.create(totalBytes, 0)
+
+  progress.buffered.start(
+    totalBytes ? totalBytes : 5000000000000,
+    0,
+    { title: 'buffered ', bytes: '0', percent: '--' }
+  )
+
+  progress.delivered.start(
+    totalBytes ? totalBytes : 5000000000000,
+    0,
+    { title: 'delivered', bytes: '0', percent: '--' }
+  )
 }

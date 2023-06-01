@@ -34,12 +34,12 @@
     "@buzuli/promised": "^1.0.0",
     "@buzuli/throttle": "^2.0.2",
     "@buzuli/url": "^1.0.1",
+    "cli-progress": "^3.12.0",
     "durations": "^3.4.2",
     "gunzip-maybe": "^1.4.2",
     "inquirer": "^8.2.4",
     "moment": "^2.29.3",
     "pretty-bytes": "^5.5.0",
-    "progress": "^2.0.3",
     "ramda": "^0.28.0",
     "yargs": "^17.5.1"
   },
