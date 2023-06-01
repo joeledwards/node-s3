@@ -161,7 +161,12 @@ async function put ({ aws, options: args }) {
     queueSize
   }
 
-  s3.upload(params, options, (error, result) => {
+  let totalKnown = false
+  const progress = {
+    bar: new ProgressBar('  uploading [:bar] :current | :rate/bps')
+  }
+
+  const managedUpload = s3.upload(params, options, (error, result) => {
     if (error) {
       console.error(`Error putting S3 object : ${error}`)
       process.exit(1)
@@ -169,5 +174,15 @@ async function put ({ aws, options: args }) {
       const { ETag: etag } = result
       console.info(`S3 put complete [ETag:${etag}].`)
     }
+  })
+
+  managedUpload.on('httpUploadProgress', ({ total, loaded }) => {
+    if (loaded != null && !totalKnown) {
+      totalKnown = true
+      progress.bar.interrupt()
+      progress.bar = new ProgressBar('  uploading [:bar] :current/:total :percent | :rate/bps', { total })
+    }
+
+    progress.bar.tick(loaded)
   })
 }

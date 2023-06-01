@@ -39,6 +39,7 @@
     "inquirer": "^8.2.4",
     "moment": "^2.29.3",
     "pretty-bytes": "^5.5.0",
+    "progress": "^2.0.3",
     "ramda": "^0.28.0",
     "yargs": "^17.5.1"
   },
