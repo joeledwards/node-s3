@@ -214,7 +214,7 @@ async function put ({ aws, options: args }) {
   })
 
   uploadManager.on('httpUploadProgress', ({ total, loaded }) => {
-    updateProgressBar(progress.buffered, loaded, total)
+    updateProgressBar(progress.delivered, loaded, total)
   })
 
   // Build the progress bar
