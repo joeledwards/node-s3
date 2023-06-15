@@ -157,7 +157,7 @@ async function put ({ aws, options: args }) {
   function updateProgressBar (bar, completed, total) {
     const resolvedTotal = total || totalBytes
     const bytes = resolvedTotal ? `${prettyBytes(completed)} of ${prettyBytes(resolvedTotal)}` : `${prettyBytes(completed)}`
-    const percent = resolvedTotal ? (`${(bufferedBytes/resolvedTotal*100.0).toFixed(1)}%`) : '--'
+    const percent = resolvedTotal ? (`${(completed/resolvedTotal*100.0).toFixed(1)}%`) : '--'
     bar.update(completed, { bytes, percent })
   }
 
