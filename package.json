@@ -28,7 +28,7 @@
   "dependencies": {
     "@buzuli/app": "^1.2.1",
     "@buzuli/aws": "^4.5.1",
-    "@buzuli/color": "^2.2.2",
+    "@buzuli/color": "^2.3.2",
     "@buzuli/json": "^2.1.0",
     "@buzuli/meter": "^1.4.0",
     "@buzuli/promised": "^1.0.0",
