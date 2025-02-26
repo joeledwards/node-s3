@@ -1,6 +1,6 @@
 {
   "name": "@buzuli/s3",
-  "version": "4.4.3",
+  "version": "4.4.4",
   "description": "S3 CLI client",
   "repository": "github:joeledwards/node-s3",
   "bin": {
