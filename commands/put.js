@@ -53,7 +53,7 @@ function builder (yargs) {
     .option('queue-size', {
       type: 'number',
       desc: 'maximum number of outstanding part buffers (buffered sequentially, uploaded in parallel; for fast sources)',
-      default: 1,
+      default: 10,
       alias: 'q'
     })
     .option('verbose', {
@@ -153,12 +153,30 @@ async function put ({ aws, options: args }) {
     }
   }
 
+  function makeProgress (multiBar, total, initial) {
+    const bar = multiBar.create(total, initial)
+    const updates = 0
+    const watch = durations.stopwatch().start()
+
+    return {
+      bar,
+      updates,
+      watch,
+    }
+  }
+
   // Progress updater
-  function updateProgressBar (bar, completed, total) {
-    const resolvedTotal = total || totalBytes
-    const bytes = resolvedTotal ? `${prettyBytes(completed)} of ${prettyBytes(resolvedTotal)}` : `${prettyBytes(completed)}`
-    const percent = resolvedTotal ? (`${(completed/resolvedTotal*100.0).toFixed(1)}%`) : '--'
-    bar.update(completed, { bytes, percent })
+  function updateProgress (progress, completed, total, forced) {
+    progress.updates++
+
+    if (forced || progress.watch.duration().millis() >= 0) {
+      const resolvedTotal = total || totalBytes
+      const bytes = resolvedTotal ? `${prettyBytes(completed)} of ${prettyBytes(resolvedTotal)}` : `${prettyBytes(completed)}`
+      const percent = resolvedTotal ? (`${(completed/resolvedTotal*100.0).toFixed(1)}%`) : '--'
+      const updates = `${progress.updates}`
+      progress.bar.update(completed, { bytes, percent, updates })
+      progress.watch.reset().start()
+    }
   }
 
   // Set up the progress stream
@@ -167,7 +185,7 @@ async function put ({ aws, options: args }) {
   const tStream = new stream.Transform({
     transform: (chunk, encoding, callback) => {
       bufferedBytes += chunk.length
-      updateProgressBar(progress.buffered, bufferedBytes, totalBytes)
+      updateProgress(progress.buffered, bufferedBytes, totalBytes, false)
 
       callback(null, chunk)
     }
@@ -199,8 +217,8 @@ async function put ({ aws, options: args }) {
   }
 
   const uploadManager = s3.upload(params, options, (error, result) => {
-    updateProgressBar(progress.buffered, totalBytes || bufferedBytes, totalBytes)
-    updateProgressBar(progress.delivered, totalBytes || bufferedBytes, totalBytes)
+    updateProgress(progress.buffered, totalBytes || bufferedBytes, totalBytes, true)
+    updateProgress(progress.delivered, totalBytes || bufferedBytes, totalBytes, true)
 
     progress.bar.stop()
 
@@ -214,25 +232,27 @@ async function put ({ aws, options: args }) {
   })
 
   uploadManager.on('httpUploadProgress', ({ total, loaded }) => {
-    updateProgressBar(progress.delivered, loaded, total)
+    updateProgress(progress.delivered, loaded, total, false)
   })
+
+  const barTextFormat = verbose
+    ? '{title} [{bar}] {bytes} | {percent} ({updates} update events)'
+    : '{title} [{bar}] {bytes} | {percent}'
 
   // Build the progress bar
-  progress.bar = new cliProgress.MultiBar({
-    format: '{title} [{bar}] {bytes} | {percent}'
-  })
-  progress.buffered = progress.bar.create(totalBytes, 0)
-  progress.delivered = progress.bar.create(totalBytes, 0)
+  progress.bar = new cliProgress.MultiBar({ format: barTextFormat })
+  progress.buffered = makeProgress(progress.bar, totalBytes, 0)
+  progress.delivered = makeProgress(progress.bar, totalBytes, 0)
 
-  progress.buffered.start(
+  progress.buffered.bar.start(
     totalBytes ? totalBytes : 5000000000000,
     0,
-    { title: 'buffered ', bytes: '0', percent: '--' }
+    { title: 'buffered ', bytes: '0', percent: '--', updates: '0' }
   )
 
-  progress.delivered.start(
+  progress.delivered.bar.start(
     totalBytes ? totalBytes : 5000000000000,
     0,
-    { title: 'delivered', bytes: '0', percent: '--' }
+    { title: 'delivered', bytes: '0', percent: '--', updates: '0' }
   )
 }
